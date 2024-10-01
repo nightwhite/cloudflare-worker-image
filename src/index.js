@@ -1,8 +1,6 @@
 import queryString from 'query-string';
-
 import * as photon from '@silvia-odwyer/photon';
 import PHOTON_WASM from '../node_modules/@silvia-odwyer/photon/photon_rs_bg.wasm';
-
 import encodeWebp, { init as initWebpWasm } from '@jsquash/webp/encode';
 import WEBP_ENC_WASM from '../node_modules/@jsquash/webp/codec/enc/webp_enc.wasm';
 
@@ -62,14 +60,21 @@ export default {
 
 		// 入参提取与校验
 		const query = queryString.parse(new URL(request.url).search);
-		const { url = '', action = '', format = 'webp', quality = 99 } = query;
+		const action = query.action || '';
+		const format = query.format || 'webp';
+		const quality = query.quality || 99;
+
+		// 固定基础 URL
+		const baseImageUrl = 'https://www.hysli-cos.top';
+		const imagePath = cacheUrl.pathname; // 从请求的路径获取图片路径
+		const url = `${baseImageUrl}${imagePath}`; // 完整的图片 URL
 		console.log('params:', url, action, format, quality);
 
 		if (!url) {
 			return new Response(null, {
 				status: 302,
 				headers: {
-					location: 'https://github.com/ccbikai/cloudflare-worker-image',
+					location: 'https://hysli.ai',
 				},
 			});
 		}
@@ -107,9 +112,9 @@ export default {
 			// 图片编码
 			let outputImageData;
 			if (format === 'jpeg' || format === 'jpg') {
-				outputImageData = outputImage.get_bytes_jpeg(quality)
+				outputImageData = outputImage.get_bytes_jpeg(quality);
 			} else if (format === 'png') {
-				outputImageData = outputImage.get_bytes()
+				outputImageData = outputImage.get_bytes();
 			} else {
 				outputImageData = await encodeWebp(outputImage.get_image_data(), { quality });
 			}
