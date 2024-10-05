@@ -1,6 +1,6 @@
 # Cloudflare Worker Image
 
-使用 Cloudflare Worker 处理图片, 依赖 Photon，支持缩放、剪裁、水印、滤镜等功能。
+使用 Cloudflare Worker 处理图片，依赖 Photon，支持缩放、剪裁、水印、滤镜等功能。
 
 ---
 
@@ -41,42 +41,52 @@ npm run deploy
 
 ## 使用方式
 
-修改域名和参数即可使用, 参考：<https://image.miantiao.me/?url=https%3A%2F%2Fstatic.miantiao.me%2Fshare%2FMTyerw%2Fbanner-2048.jpeg&action=resize!830,400,2>
+### action 参数
 
-### 参数说明
+#### 1. resize
 
-url:
-> 原图地址，需要使用 encodeURIComponent 编码
+调整图像大小。
 
-action:
-> 操作指令, 支持 [Photon](https://docs.rs/photon-rs/latest/photon_rs/) 各种操作指令，指令与参数直接使用`!`分割，参考 `resize!830,400,2`
->
-> 支持管道操作，多个操作指令使用`|`分割，参考 `resize!830,400,2|watermark!https%3A%2F%2Fstatic.miantiao.me%2Fshare%2F6qIq4w%2FFhSUzU.png,10,10`
->
-> 如果参数中有 URL 或其他特殊字符，需要使用 encodeURIComponent 编码 URL 和 特殊字符
+##### resize 用法
 
-format:
-> 输出图片格式，支持：`jpg,webp,png`，可选，默认 webp
+resize!<width>,<height>,<mode>
 
-quality:
-> 图片质量，1-100 只有 webp 和 jpg 格式支持，可选，默认 99
+markdown
 
-## 演示
+复制
 
-### 缩放+旋转+文字水印
+##### resize 参数
 
-![demo](https://image.miantiao.me/?url=https%3A%2F%2Fstatic.miantiao.me%2Fshare%2FMTyerw%2Fbanner-2048.jpeg&action=resize!830,400,2%7Crotate!180%7Cdraw_text!miantiao.me,10,10)
+- **width**: 目标宽度（像素）。
+- **height**: 目标高度（像素）。
+- **mode**: 压缩算法，默认填 2 即可
 
-由于 Github 会缓存图片，请前往我博客查看真实示例。
+##### 示例
 
-<http://chi.miantiao.me/post/cloudflare-worker-image/>
+resize!800,400,2
 
-## 致谢
+#### 2. watermark
 
-- [Cloudflare](https://www.cloudflare.com)
-- [photon](https://github.com/silvia-odwyer/photon)
-- [jSquash](https://github.com/jamsinclair/jSquash)
+在图像上添加水印。
 
----
+##### watermark 用法
 
-[![Buy Me A Coffee](https://static.miantiao.me/share/0WmsVP/CcmGr8.png)](https://www.buymeacoffee.com/ccbikai)
+watermark!<watermarkImageUrl>,<x>,<y>,<width>,<height>
+
+##### watermark 参数
+
+- **watermarkImageUrl**: 水印图像的 URL。
+- **x**: 水印的 x 坐标（像素）。
+- **y**: 水印的 y 坐标（像素）。
+- **width**: 水印的宽度（像素）。
+- **height**: 水印的高度（像素）。
+
+##### 示例
+
+watermark!https%3A%2F%2Fhysli.ai%2Fassets%2Flogo_orange.81cf6e62.png,10,10,10,10
+
+## 其他操作
+
+可以组合多个操作，使用 `|` 分隔，例如：
+
+resize!800,400,1|watermark!https%3A%2F%2Fhysli.ai%2Fassets%2Flogo_orange.81cf6e62.png,10,10,10,10
