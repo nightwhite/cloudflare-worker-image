@@ -52,3 +52,6 @@ WHITE_LIST = ""
 # [[migrations]]
 # tag = "v1"
 # new_classes = ["MyDurableObject"]
+
+[observability]
+enabled = true

@@ -8,10 +8,8 @@ import WEBP_ENC_WASM from '../node_modules/@jsquash/webp/codec/enc/webp_enc.wasm
 const photonInstance = await WebAssembly.instantiate(PHOTON_WASM, {
 	'./photon_rs_bg.js': photon,
 });
-photon.setWasm(photonInstance.exports); // need patch
-
+photon.setWasm(photonInstance.exports);
 await initWebpWasm(WEBP_ENC_WASM);
-
 const OUTPUT_FORMATS = {
 	jpeg: 'image/jpeg',
 	jpg: 'image/jpeg',
@@ -28,22 +26,38 @@ const inWhiteList = (env, url) => {
 };
 
 const processImage = async (env, request, inputImage, pipeAction) => {
-	const [action, options = ''] = pipeAction.split('!');
-	const params = options.split(',');
-	if (multipleImageMode.includes(action)) {
-		const image2 = params.shift(); // 是否需要 decodeURIComponent ?
-		if (image2 && inWhiteList(env, image2)) {
-			const image2Res = await fetch(image2, { headers: request.headers });
-			if (image2Res.ok) {
-				const inputImage2 = photon.PhotonImage.new_from_byteslice(new Uint8Array(await image2Res.arrayBuffer()));
-				// 多图处理是处理原图
-				photon[action](inputImage, inputImage2, ...params);
-				return inputImage; // 多图模式返回第一张图
+	await initWebpWasm(WEBP_ENC_WASM);
+	try {
+		const [action, options = ''] = pipeAction.split('!');
+		const params = options.split(',');
+		if (multipleImageMode.includes(action)) {
+			const image2 = params.shift();
+			if (image2 && inWhiteList(env, image2)) {
+				const image2Res = await fetch(image2, { headers: request.headers });
+				if (image2Res.ok) {
+					const inputImage2 = photon.PhotonImage.new_from_byteslice(new Uint8Array(await image2Res.arrayBuffer()));
+					// 如果 action 是 watermark，且 坐标是负数，那么就从右下角开始计算
+					if (action === 'watermark' && parseInt(params[0], 10) < 0) {
+						params[0] = inputImage.get_width() - inputImage2.get_width() + parseInt(params[0], 10);
+					}
+					// 如果 action 是 watermark，且 坐标是负数，那么就从右下角开始计算
+					if (action === 'watermark' && parseInt(params[1], 10) < 0) {
+						params[1] = inputImage.get_height() - inputImage2.get_height() + parseInt(params[1], 10);
+					}
+
+					photon[action](inputImage, inputImage2, ...params);
+					return inputImage; // 返回处理后的图像
+				} else {
+					console.error('Failed to fetch second image:', image2Res.status);
+				}
 			}
+		} else {
+			return photon[action](inputImage, ...params);
 		}
-	} else {
-		return photon[action](inputImage, ...params);
+	} catch (error) {
+		console.error('Error in processImage:', error);
 	}
+	return inputImage; // 确保始终返回一个值
 };
 
 export default {
@@ -62,12 +76,12 @@ export default {
 		const query = queryString.parse(new URL(request.url).search);
 		const action = query.action || '';
 		const format = query.format || 'webp';
-		const quality = query.quality || 99;
+		const quality = query.quality !== undefined ? query.quality : format === 'webp' ? 85 : 99;
 
 		// 固定基础 URL
 		const baseImageUrl = 'https://www.hysli-cos.top';
-		const imagePath = cacheUrl.pathname; // 从请求的路径获取图片路径
-		const url = `${baseImageUrl}${imagePath}`; // 完整的图片 URL
+		const imagePath = cacheUrl.pathname;
+		const url = `${baseImageUrl}${imagePath}`;
 		console.log('params:', url, action, format, quality);
 
 		if (!url) {
