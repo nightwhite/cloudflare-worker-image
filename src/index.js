@@ -132,15 +132,31 @@ export default {
 			} else {
 				outputImageData = await encodeWebp(outputImage.get_image_data(), { quality });
 			}
-			console.log('create outputImageData done');
 
-			// 返回体构造
-			const imageResponse = new Response(outputImageData, {
-				headers: {
-					'content-type': OUTPUT_FORMATS[format],
-					'cache-control': 'public,max-age=15552000',
-				},
-			});
+			// 检查是否为 WebP 格式
+
+			let imageResponse;
+			const mimeType = imageRes.headers.get('content-type');
+
+			if (mimeType && mimeType.includes('image/webp')) {
+				console.log('Image is already in WebP format, returning directly.');
+				imageResponse = new Response(imageBytes, {
+					headers: {
+						'content-type': OUTPUT_FORMATS.webp,
+						'cache-control': 'public,max-age=15552000',
+					},
+				});
+			} else {
+				console.log('create outputImageData done');
+
+				// 返回体构造
+				imageResponse = new Response(outputImageData, {
+					headers: {
+						'content-type': OUTPUT_FORMATS[format],
+						'cache-control': 'public,max-age=15552000',
+					},
+				});
+			}
 
 			// 释放资源
 			inputImage.ptr && inputImage.free();
